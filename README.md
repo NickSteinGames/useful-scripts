@@ -21,5 +21,7 @@ They includes[^1]:
   ```
 ### From wtere
 Open [`Releases`](https://github.com/NickSteinGames/useful-scripts/releases) and download [Latest Release](https://github.com/NickSteinGames/useful-scripts/releases/latest).
+***
+Special thanks to [**@pikuler**](https://github.com/pikuler) for help with icons :3
 
 [^1]: If mark is checked its means you need to enable plugin `Useful Scripts` in `Project Settings`
