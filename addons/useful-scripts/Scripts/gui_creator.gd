@@ -1,6 +1,7 @@
-extends Object
-class_name GUICreator
-## Creates [Control] Nodes from [Dictionary].
+@tool
+@icon("res://addons/useful-scripts/Images/Icons/GUICreator.svg")
+class_name GUICreator extends Object
+## Creates [Control] Nodes (GUI) from [Dictionary].
 ## 
 ## [b]Example:[/b] 
 ## [codeblock]

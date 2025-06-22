@@ -13,7 +13,6 @@ var IDS_CALSS: Dictionary[int, Callable] = {
 }
 
 const GUIDE_CREATOR = preload("Scenes/guide_creator.tscn")
-const GUI_CRETOR_WINDOW = preload("Scenes/gui_cretor_window.tscn")
 var guide_creator: Window
 var gui_creator: Window
 
@@ -124,7 +123,6 @@ func _enter_tree() -> void:
 	add_tool_submenu_item("Useful Scripts", us_menu)
 	
 	guide_creator = GUIDE_CREATOR.instantiate()
-	guide_creator.process_mode = Node.PROCESS_MODE_INHERIT
 	EditorInterface.get_editor_main_screen().add_child(guide_creator)
 	guide_creator.position = EditorInterface.get_editor_main_screen().size / 2 - Vector2(0, guide_creator.size.y / 2)
 	guide_creator.hide()

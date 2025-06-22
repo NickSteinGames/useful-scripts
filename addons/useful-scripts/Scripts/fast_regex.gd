@@ -1,3 +1,5 @@
+@tool
+@icon("res://addons/useful-scripts/Images/Icons/FastRegEx.svg")
 extends Object
 class_name FastRegEx
 
