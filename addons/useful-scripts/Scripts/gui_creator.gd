@@ -26,11 +26,12 @@ class_name GUICreator extends Object
 ##    }))
 ## [/codeblock]
 ## 
-## You can see the parameters in the description of the make_* functions, but there are several global [param Parameters]:[br]
+## You can see the parameters in the description of the [b]make_*[/b] functions, but there are several global [param Parameters]:[br]
 ## ● [param is_root]: [bool] - Makes this element the root for all others (all elements without the [param parent] parameter will automatically be added to the [param root_control]). [b]Default: [code]false[/code][/b][br][br]
 ## ● [param parent]: [bool] - Defines the parent of this element and adds it to it. If you set the value to [code]"root"[/code], then the element will be added as a child node of the root element ([param root_control]). You can also set the [code]name[/code] of the [param root_control] as the value, this will be equivalent. [b]Default: [code]"root"[/code][/b][br][br]
 ## ● [param h_*/v_size_flags] (or [param horizontal_*]/[param vertical_size_flags]: [enum Control.SizeFlags] - Param for sets element's [member Control.size_flags_horizontal] and [member Control.size_flags_vertical].
 ## [b]Default: [constant Control.SIZE_FILL][/b][br][br]
+## ● [param size]: [Vector2] - sets [member Control.size] [i](if element not added to [Container])[/i]. [b]Default: [Vector2](100, 100)[/b][br][br]
 ## ● [param min_size]: [Vector2] - [member Control.custom_minimum_size]. [b]Default: [constant Vector2.ZERO][/b][br][br]
 ## ● [param properties]: [Dictionary][[StringName], [Variant]] - A parameter for setting other properties that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
 ## ● [param signals]: [Dictionary][[StringName], [Callable]] - A parameter for setting other signals that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
@@ -67,7 +68,7 @@ static var global_button_groups: Dictionary[StringName, ButtonGroup] = {}
 ##● [String]/[StringName] - The [member Node.owner] for each element will be set to the node whose name was passed;[br]
 ##● [Node] - The passed node (can be any class that inherits from [Node]) will be set as [member Node.owner] for all elements;[br]
 ##● [NodePath] - Path to the node (starting from [member SceneTree.root]).[br]
-static func create_gui(data: Dictionary[StringName, Dictionary], owner = null, theme: Theme = null) -> Control:
+static func create_gui(data: Dictionary[StringName, Dictionary], owner = null) -> Control:
 	assert(!data.is_empty(), "'data' is empty!")
 	var root_control: Control
 	var result_data: Dictionary[StringName, Control]
@@ -80,10 +81,12 @@ static func create_gui(data: Dictionary[StringName, Dictionary], owner = null, t
 		new_control = ClassDB.instantiate(control_type)
 		match control_type:
 			&"Label": new_control = make_label(control, control_data)
-			&"Button": new_control = make_button(control, control_data)
+			&"RichTextLabel": new_control = make_rich_label(control_data)
+			&"Button": new_control = make_button(control_data)
 			&"BoxContainer", &"HBoxContainer", &"VBoxContainer": new_control = make_box_container(control_data)
-			&"OptionButton": new_control = make_option_button(control, control_data)
+			&"OptionButton": new_control = make_option_button(control_data)
 			&"LineEdit": new_control = make_line_edit(control_data)
+			_: new_control = ClassDB.instantiate(control_type)
 		
 		new_control.size_flags_horizontal = control_data.get("h_size_flags", control_data.get("horizontal_size_flags", Control.SIZE_FILL))
 		new_control.size_flags_vertical = control_data.get("v_size_flags", control_data.get("vertical_size_flags", Control.SIZE_FILL))
@@ -140,9 +143,11 @@ static func create_gui(data: Dictionary[StringName, Dictionary], owner = null, t
 		assert(root_control, "No root! Add in 'data' on fisrt place Control with parametr 'is_root' = 'true'")
 		
 	
-	
 	return root_control
 
+##Creates a GUI from the given [Dictionary] of [[StringName], [Dictionary]] [param data] and saves it into a scene according to the given [String] [param save_path].
+##[br]An extension within the [param save_path] is optional.
+##[br]Returns an [Error] if issues occur.
 static func save_gui_scene(data: Dictionary[StringName, Dictionary], save_path: String) -> Error:
 	var scene: PackedScene = PackedScene.new()
 	var pack_err = scene.pack(create_gui(data, &"root"))
@@ -161,12 +166,12 @@ static func save_gui_scene(data: Dictionary[StringName, Dictionary], save_path: 
 ## ● [param toggled_callable]: [Callable] - [Callable] for connect to [signal BaseButton.toggled]. It can be a Lambda function. Must be given for button functionality. (if [param toggle_mode] is [code]true[/code]) (see [signal BaseButton.toggled])[br][br]
 ## ● [param pressed_callable]: [Callable] - [Callable] for connect to [signal BaseButton.pressed]. It can be a Lambda function. Must be given for button functionality. (if [param toggle_mode] is [code]false[/code]) (see [signal BaseButton.pressed])[br][br]
 ## [br][b]Warning:[/b] [param start_pressed] not call [param toggled_callable].
-static func make_button(name:StringName, control_data: Dictionary) -> Button:
+static func make_button(control_data: Dictionary) -> Button:
 	var new_button: Button
 	
 	new_button = ClassDB.instantiate(control_data.type)
 	
-	new_button.text = control_data.get("text", name)
+	new_button.text = control_data.get("text", "Button")
 	new_button.toggle_mode = control_data.get("toggle_mode", false)
 	if new_button.toggle_mode:
 		new_button.button_pressed = control_data.get("start_pressed", false)
@@ -206,11 +211,13 @@ static func make_label(name:StringName, control_data: Dictionary) -> Label:
 ## Creates a [RichTextLabel].[br]
 ## Label's Parameters:[br]
 ## ● as with [method make_label][br][br]
-## ● [param bbcode_enebled]: [bool] - [member RichTextLabel.bbcode_enabled]. [b]Default: [code]false[/code][/b][br][br]
+## ● [param bbcode/bbcode_enebled]: [bool] - [member RichTextLabel.bbcode_enabled]. [b]Default: [code]false[/code][/b][br][br]
+## ● Use [param properties] to sets another [RichTextLabel] properties.
 static func make_rich_label(control_data: Dictionary) -> RichTextLabel:
 	var new_label = RichTextLabel.new()
 	
 	new_label.text = control_data.get("text", "")
+	new_label.bbcode_enabled = control_data.get("bbcode", control_data.get("bbcode_enabled", false))
 	new_label.horizontal_alignment = control_data.get("h_alignment", control_data.get("horizontal_alignment", HORIZONTAL_ALIGNMENT_LEFT))
 	new_label.vertical_alignment = control_data.get("v_alignment", control_data.get("vertical_alignment", VERTICAL_ALIGNMENT_TOP))
 	
@@ -279,8 +286,8 @@ static func make_box_container(control_data: Dictionary) -> BoxContainer:
 ##        }
 ##    }))
 ## [/codeblock]
-static func make_option_button(name:StringName, control_data: Dictionary) -> OptionButton:
-	var new_button: OptionButton = make_button(name, control_data)
+static func make_option_button(control_data: Dictionary) -> OptionButton:
+	var new_button: OptionButton = make_button(control_data)
 	
 	if control_data.has("item_selected_callable"):
 		new_button.item_selected.connect(control_data.get("item_selected_callable"))
