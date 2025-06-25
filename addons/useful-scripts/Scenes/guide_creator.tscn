@@ -64,12 +64,31 @@ events = [SubResource("InputEventMouseButton_7w27l")]
 script/source = "@tool
 extends CodeEdit
 
-@export var previewer: CodeEdit
-
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventKey && event.is_pressed():
-		previewer.scroll_horizontal = scroll_horizontal
-		previewer.scroll_vertical = scroll_vertical
+	var caret_line: int = get_caret_line()
+	var caret_colm: int = get_caret_column()
+	var line_text = get_line(caret_line)
+	if line_text.substr(caret_colm -1, caret_colm) == \"[\":
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class link\", \"\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Param\", \"param \")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class member\", \"member \")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class method\", \"method \", Color.AQUAMARINE)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class signal\", \"signal \", Color.PALE_VIOLET_RED)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class enum\", \"enum \", Color.RED / 1.2)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class constant\", \"constant \", Color.DARK_RED)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class theme_item\", \"theme_item \", Color.DEEP_PINK)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class annotation\", \"annotation @GDScript.\", Color.ORANGE_RED)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class constructor\", \"constructor \")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Class operator\", \"operator \")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Line break\", \"br\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Bold text\", \"b][/b\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Code part\", \"code][/code\", Color.INDIAN_RED)
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Italic\", \"i][/i\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Codeblock\", \"codeblock]\\n[/codeblock]\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Codeblock (text)\", \"codeblock lang=text]\\n[/codeblock]\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Codeblock (GDscript)\", \"codeblock lang=gdscript]\\n[/codeblock]\")
+		add_code_completion_option(CodeEdit.KIND_CLASS, \"Codeblock (C#)\", \"codeblock lang=csharp]\\n[/codeblock]\")
+		update_code_completion_options(true)
 "
 
 [node name="Window" type="Window" node_paths=PackedStringArray("code_edit", "code_preview", "font_size_box")]
@@ -471,7 +490,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="CodeEdit" type="CodeEdit" parent="MarginContainer/BoxContainer2/BoxContainer2" node_paths=PackedStringArray("previewer")]
+[node name="CodeEdit" type="CodeEdit" parent="MarginContainer/BoxContainer2/BoxContainer2"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -489,7 +508,6 @@ indent_automatic = true
 auto_brace_completion_enabled = true
 auto_brace_completion_highlight_matching = true
 script = SubResource("GDScript_pcvn0")
-previewer = NodePath("../BoxContainer/CodeEdit2")
 
 [node name="BoxContainer" type="BoxContainer" parent="MarginContainer/BoxContainer2/BoxContainer2"]
 layout_mode = 2

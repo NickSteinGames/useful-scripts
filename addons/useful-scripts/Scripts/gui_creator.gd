@@ -3,7 +3,20 @@
 class_name GUICreator extends Object
 ## Creates [Control] Nodes (GUI) from [Dictionary].
 ## 
-## [b]Example:[/b] 
+## You can see the parameters in the description of the [b]make_*[/b] functions, but there are several global [param Parameters]:[br]
+## ● [param is_root]: [bool] - Makes this element the root for all others (all elements without the [param parent] parameter will automatically be added to the [param root_control]). [b]Default: [code]false[/code][/b][br][br]
+## ● [param parent]: [StringName] - Defines the parent of this element and adds it to it. If you set the value to [code]"root"[/code], then the element will be added as a child node of the root element ([param root_control]). You can also set the [code]name[/code] of the [param root_control] as the value, this will be equivalent. [b]Default: [code]"root"[/code][/b][br][br]
+## ● [param h_*/v_size_flags] (or [param horizontal_*]/[param vertical_size_flags]: [enum Control.SizeFlags] - Param for sets element's [member Control.size_flags_horizontal] and [member Control.size_flags_vertical].
+## [b]Default: [constant Control.SIZE_FILL][/b][br][br]
+## ● [param size]: [Vector2] - sets [member Control.size] [i](if element not added to [Container])[/i]. [b]Default: [Vector2](100, 100)[/b][br][br]
+## ● [param min_size]: [Vector2] - [member Control.custom_minimum_size]. [b]Default: [constant Vector2.ZERO][/b][br][br]
+## ● [param properties]: [Dictionary][[StringName], [Variant]] - A parameter for setting other properties that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
+## ● [param signals]: [Dictionary][[StringName], [Callable]] - A parameter for setting other signals that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
+## ● [param meta]: [Dictionary][[StringName], [Variant]] - A parameter for setting [code]Meta Data[/code] of this control. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
+## ● [param script]: [String] - You can attach custom script. It's can be a code in like String or path to script file. [b]Default: [code]""[/code][/b][br][br]
+##● [param ready_callable]: [Callable] - Calls when [signal Node.ready] is emited.[br][br]
+## 
+##[b]Example of usage:[/b] 
 ## [codeblock]
 ## func _ready() -> void:
 ##    add_child(GUICreator.create_gui({
@@ -23,23 +36,19 @@ class_name GUICreator extends Object
 ##            "text": "Quit",
 ##            "pressed_callable": get_tree().quit, ## Callable from 'SceneTree'.
 ##        },
-##    }))
+##    })) ## Its adds `HBoxContainer` with 2 buttons: 1. Prints message and 2. Quit the game.
 ## [/codeblock]
-## 
-## You can see the parameters in the description of the [b]make_*[/b] functions, but there are several global [param Parameters]:[br]
-## ● [param is_root]: [bool] - Makes this element the root for all others (all elements without the [param parent] parameter will automatically be added to the [param root_control]). [b]Default: [code]false[/code][/b][br][br]
-## ● [param parent]: [bool] - Defines the parent of this element and adds it to it. If you set the value to [code]"root"[/code], then the element will be added as a child node of the root element ([param root_control]). You can also set the [code]name[/code] of the [param root_control] as the value, this will be equivalent. [b]Default: [code]"root"[/code][/b][br][br]
-## ● [param h_*/v_size_flags] (or [param horizontal_*]/[param vertical_size_flags]: [enum Control.SizeFlags] - Param for sets element's [member Control.size_flags_horizontal] and [member Control.size_flags_vertical].
-## [b]Default: [constant Control.SIZE_FILL][/b][br][br]
-## ● [param size]: [Vector2] - sets [member Control.size] [i](if element not added to [Container])[/i]. [b]Default: [Vector2](100, 100)[/b][br][br]
-## ● [param min_size]: [Vector2] - [member Control.custom_minimum_size]. [b]Default: [constant Vector2.ZERO][/b][br][br]
-## ● [param properties]: [Dictionary][[StringName], [Variant]] - A parameter for setting other properties that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
-## ● [param signals]: [Dictionary][[StringName], [Callable]] - A parameter for setting other signals that are not processed by the [method  make_*] methods. I recommend using [StringName] ([code]&""[/code]) to increase performance. [b]Default: [code]{}[/code][/b][br][br]
-## ● [param script]: [String] - You can attach custom script. It's can be a code in like String or path to script file. [b]Default: [code]""[/code][/b][br][br]
-##● [param ready_callable]: [Callable] - Calls when [signal Node.ready] is emited.[br][br]
-## 
+##
+##@tutorial(GUICreator wiki): https://github.com/NickSteinGames/useful-scripts/wiki/GUICreator#how-it-works
+##
 
+##Global [ButtonGroup]s for [BaseButton] from [method make_button][br]
 static var global_button_groups: Dictionary[StringName, ButtonGroup] = {}
+
+##Defined GUIs.[br]
+##Its [Control]s whats storages in memory for improve optimization.[br]
+##See [method define_gui_add], [method define_gui_remove] and [method define_gui_clear].
+static var defined_guis: Dictionary[StringName, Control] = {}
 
 ## Returns [Control] ([param root_control]) from given [param data].[br]
 ## [b]Example:[/b] 
@@ -86,7 +95,7 @@ static func create_gui(data: Dictionary[StringName, Dictionary], owner = null) -
 			&"BoxContainer", &"HBoxContainer", &"VBoxContainer": new_control = make_box_container(control_data)
 			&"OptionButton": new_control = make_option_button(control_data)
 			&"LineEdit": new_control = make_line_edit(control_data)
-			_: new_control = ClassDB.instantiate(control_type)
+			_: new_control = make_custom(control_type, control_data)
 		
 		new_control.size_flags_horizontal = control_data.get("h_size_flags", control_data.get("horizontal_size_flags", Control.SIZE_FILL))
 		new_control.size_flags_vertical = control_data.get("v_size_flags", control_data.get("vertical_size_flags", Control.SIZE_FILL))
@@ -109,8 +118,11 @@ static func create_gui(data: Dictionary[StringName, Dictionary], owner = null) -
 				else:
 					var new_script = GDScript.new()
 					new_script.source_code = script
-					new_script.reload()
-					new_control.set_script(new_script)
+					var err = new_script.reload()
+					if err == OK:
+						new_control.set_script(new_script)
+					else:
+						printerr("GUICreator: Can't create script - error: ", error_string(err))
 			elif script is Resource:
 				new_control.set_script(script)
 			else:
@@ -127,36 +139,77 @@ static func create_gui(data: Dictionary[StringName, Dictionary], owner = null) -
 			result_data[StringName(control_data.get("parent", &"root"))].add_child(new_control, true)
 			result_data[control] = new_control
 			if print_debuging: print_debug("Element '%s' added!" % control)
-		
 		if owner:
-			if owner is StringName || owner is String:
-				if result_data.has(StringName(owner)):
-					if !control_data.is_root:
-						new_control.owner = result_data[StringName(owner)]
-			elif owner is Node:
-				new_control.owner = owner
-			elif owner is NodePath:
-				new_control.owner = new_control.get_tree().root.get_node(owner)
-			else:
-				assert(false, "'owner' mut be a 'String'/'StringName' of 'data'`s already existens GUI Control, owner it self (and 'Node') or 'NodePath' to the owner Node (from 'root').")
+			match typeof(owner):
+				TYPE_STRING, TYPE_STRING_NAME:
+					if result_data.has(StringName(owner)):
+						if !control_data.get("is_root", false):
+							new_control.owner = result_data[StringName(owner)]
+				TYPE_OBJECT:
+					if owner is Node:
+						new_control.owner = owner
+					else:
+						assert(false, "'owner' mut be a 'String'/'StringName' of 'data'`s already existens GUI Control, owner it self (and 'Node') or 'NodePath' to the owner Node (from 'root').")
+				TYPE_NODE_PATH:
+					new_control.owner = new_control.get_tree().root.get_node(owner)
+				_:
+					assert(false, "'owner' mut be a 'String'/'StringName' of 'data'`s already existens GUI Control, owner it self (and 'Node') or 'NodePath' to the owner Node (from 'root').")
+		
+		var metadata: Dictionary = control_data.get("meta", {})
+		for meta in metadata.keys():
+			new_control.set_meta(meta, metadata[meta])
 		
 		assert(root_control, "No root! Add in 'data' on fisrt place Control with parametr 'is_root' = 'true'")
 		
-	
 	return root_control
 
 ##Creates a GUI from the given [Dictionary] of [[StringName], [Dictionary]] [param data] and saves it into a scene according to the given [String] [param save_path].
 ##[br]An extension within the [param save_path] is optional.
-##[br]Returns an [Error] if issues occur.
+##[br]Returns an [enum Error] if issues occur.[br]
+##[b]Warning:[/b] in [param *_callable]s parameters (or in parameter [param signals]) not saved lambda methods or etc.[br]
+##Use this method only for creates layouts. [br]
 static func save_gui_scene(data: Dictionary[StringName, Dictionary], save_path: String) -> Error:
 	var scene: PackedScene = PackedScene.new()
-	var pack_err = scene.pack(create_gui(data, &"root"))
+	var node = create_gui(data, &"root")
+	node.set_meta("test", print.bind("Hellow World!"))
+	node.set_meta("test2", "HIIIIII!")
+	var pack_err = scene.pack(node)
+	if !save_path.get_extension():
+		if save_path.ends_with("."): save_path += "res"
+		else: save_path += ".res"
 	if pack_err != OK:
 		printerr("GUICretor: Can`t pack scene: ", error_string(pack_err))
 		return pack_err
-	var save_err = ResourceSaver.save(scene, )
-	printerr("GUICretor: Can`t save scene: ", error_string(save_err))
+	var save_err = ResourceSaver.save(scene, save_path, ResourceSaver.FLAG_BUNDLE_RESOURCES)
 	return save_err
+
+#region DEFINED GUI
+##Adds GUI from [param data] into [member defined_guis] with gived [param name].[br]
+static func define_gui_add(data: Dictionary[StringName, Dictionary], name: StringName):
+	if !defined_guis.has(name):
+		defined_guis[name] = create_gui(data, &"root")
+	else:
+		push_error("GUICreator: GUI Node with name \"%s\" already exist!" % name)
+## Replace GUI with [param name] to [param new_data]
+static func define_gui_replace(new_data: Dictionary[StringName, Dictionary], name: StringName):
+	if defined_guis.has(name):
+		defined_guis[name] = create_gui(new_data, &"root")
+	else:
+		push_warning("GUICreator: GUI Node with name \"%s\" not exist for replacing." % name)
+## Returns Defined GUI from [member defined_guis] by [param name]
+static func define_gui_get(name: StringName) -> Control:
+	if defined_guis.has(name):
+		return defined_guis[name].duplicate()
+	else:
+		push_error("GUICreator: GUI Node with name \"%s\" not exist!" % name)
+		return null
+## Deletes GUI from [member defined_guis] by [param name].
+static func define_gui_remove(name: StringName):
+	if !defined_guis.erase(name): push_warning("GUICreator: GUI Node with name \"%s\" not even exist." % name)
+## Clear [member defined_guis]. (see [method Dictionary.clear])
+static func define_gui_clear():
+	defined_guis.clear()
+#endregion
 
 ## Creates a [Button] (and [CheckBox], [CheckButton]).[br]
 ## Button's Parameters:[br]
@@ -165,6 +218,7 @@ static func save_gui_scene(data: Dictionary[StringName, Dictionary], save_path: 
 ## ● [param start_pressed]: [bool] - Makes Button pressed by default. [b]Default: [code]false[/code][/b] (if [param toggle_mode] is [code]true[/code]) (see [member BaseButton.button_pressed])[br][br]
 ## ● [param toggled_callable]: [Callable] - [Callable] for connect to [signal BaseButton.toggled]. It can be a Lambda function. Must be given for button functionality. (if [param toggle_mode] is [code]true[/code]) (see [signal BaseButton.toggled])[br][br]
 ## ● [param pressed_callable]: [Callable] - [Callable] for connect to [signal BaseButton.pressed]. It can be a Lambda function. Must be given for button functionality. (if [param toggle_mode] is [code]false[/code]) (see [signal BaseButton.pressed])[br][br]
+## ● [param button_group]: [StringName/ButtonGroup] - If it [String]/[StringName], [ButtonGroup] takes from [member global_button_groups] (see [member BaseButton.button_group])[br][br]
 ## [br][b]Warning:[/b] [param start_pressed] not call [param toggled_callable].
 static func make_button(control_data: Dictionary) -> Button:
 	var new_button: Button
@@ -355,3 +409,24 @@ static func make_text_edit(control_data: Dictionary) -> TextEdit:
 		line_edit.text_changed.connect(control_data.get("text_changed_callable"))
 	
 	return line_edit
+
+## More easy way to make custom procces of [param control_data].[br]
+## Just add in [code]match control_type:[/code] your class, it's must be like this:
+##[codeblock]
+##match control_type:
+##    &"CustomContainer":
+##        return CustomContainer.new()
+##[/codeblock]
+static func make_custom(control_type: StringName, control_data: Dictionary) -> Control:
+	match control_type:
+		_: return ClassDB.instantiate(control_type) ## DON'T remove it, else all another types not gonna process.
+
+##Adds global [ButtonGroup] with name [param name] to [member global_button_groups].[br]
+static func add_global_button_group(name: StringName, group: ButtonGroup):
+	if !global_button_groups.has(name):
+		global_button_groups[name] = group
+
+##Removes [ButtonGroup] from [meber global_button_groups].[br]
+##Returns [code]true[/code] it removing success[br]
+static func remove_global_button_group(name: StringName) -> bool:
+	return global_button_groups.erase(name)

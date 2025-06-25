@@ -1,0 +1,221 @@
+# <img src="https://raw.githubusercontent.com/NickSteinGames/useful-scripts/main/addons/useful-scripts/Images/Icons/GUICreator.svg" width="32" height="32"/> GUICreator
+
+***
+`GUICreator` makes <img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg">[`Control`](https://docs.godotengine.org/en/latest/classes/class_control.html) from some [<img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg">`Dictionary`](https://docs.godotengine.org/en/latest/classes/class_dictionary.html) data.
+
+## How it works?
+In <img src="https://raw.githubusercontent.com/NickSteinGames/useful-scripts/main/addons/useful-scripts/Images/Icons/GUICreator.svg"/> `GUICreator.create_gui(data)` you must put [<img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg">`Dictionary`](https://docs.godotengine.org/en/latest/classes/class_dictionary.html) data what kinda looks like this:
+```gdscript
+GUICreator.create_gui({
+&"RootBox": {
+		"type": &"BoxContainer",
+		"is_root": true,
+},
+&"Label": {
+		"type": &"Label",
+		"text": "Select Option"
+},
+&"PrintsButton": {
+		"type": &"Button",
+		"parent": &"root",
+		"text": "Hello!",
+		"h_size_flags": Control.SIZE_EXPAND_FILL,
+		"pressed_callable": print.bind("Hello Wrold!"),
+},
+&"QuitButton": {
+		"type": &"Button",
+		"parent": &"root",
+		"text": "Kill app",
+		"horizontal_size_flags": Control.SIZE_EXPAND_FILL,
+		"pressed_callable": func(): print("Bye!"); get_tree().quit()
+})
+```
+We gets a `BoxContainer` with:
+- `Label` with text `"Select Option"`
+- `Button` with text `"Hello!"` and when it pressed, in `Output` we gets line `"Hello Wrold!"`
+- `Button` with text `"Kill app" `whats prints `"Bye!"` and close the game
+
+`Button`s have `size_flags_horizontal` = `Control.SIZE_EXPAND_FILL`.<br>
+`h_size_flags` and `horizontal_size_flags` are equivalent.
+
+### Important things:
+- All GUI elements processed in order what they setted in the Dictionary.
+- - And its why you must define `root` in FIRST element of Dictionary.
+- - If you try sets `parent` (for example) of element to element, what sets only after this element, you gets error, because element from `parent` not processed yet.
+- You can't save in files `Callable` from `*_callable` parameters. (in `scenens` for exemple)
+- If you need add in `GUICreator.create_gui()` processing of your custom class, i reccomend you use `make_custom()` for to do this (see [Process Custom Classes](https://github.com/NickSteinGames/useful-scripts/wiki/GUICreator#processing-custom-classes))
+
+***
+
+<details><summary><h2>Defining GUI</h2></summary>
+If you have elements that are frequently re-used, you can define them.<br>
+<b>This means</b>, you can save the GUI as a "prefab" and retrieve copies via <code>GUICreator.define_gui_get()</code>.<br>
+<i>This is reccomended as rebuilding similar GUI objects is computationally expsensive.</i>
+
+You can create GUI like this:
+```gdscript
+var data: Dictionary[StringName, Dictionary] = {
+		&"PropertyBox": {
+			"type": &"BoxContainer",
+			"is_root": true,
+		},
+		&"NameLabel": {
+			"type": &"Label",
+			"text": "property_name",
+		},
+		&"LineEdit": {
+			"type": &"LineEdit",
+			"h_size_flags": Control.SIZE_EXPAND_FILL,
+			"placeholder": "String line here...",
+		},
+		&"ResetButton": {
+			"type": &"Button",
+			"text": "Reset",
+		},
+	}
+
+func _ready() -> void:
+	v_box_container.add_child(GUICreator.create_gui(data)) # Create 1th box
+	v_box_container.add_child(GUICreator.create_gui(data)) # Create 2nd box
+	v_box_container.add_child(GUICreator.create_gui(data)) # Create 3rd box
+	v_box_container.add_child(GUICreator.create_gui(data)) # Create 4th box
+	v_box_container.add_child(GUICreator.create_gui(data)) # Create 5th box
+	# IT A TON OF PROCESSING!
+```
+However, it is better to define them like:
+```gdscript
+...
+func _ready() -> void:
+	GUICreator.define_gui_add(data, &"TestGUI") # Creates only 1 GUI
+	while v_box_container.get_child_count() < 5:
+		v_box_container.add_child(GUICreator.define_gui_get(&"TestGUI")) # and takes it for 5 times
+```
+And you get absolute same result:<br>
+![image](https://github.com/user-attachments/assets/e070cea7-f28b-48b6-b4d9-7990fdfb8cf5)
+</details>
+
+***
+
+<details><summary><h2>Type parameters</h2></summary>
+
+All processed types of `Control` nodes has parameters.
+There a list of they:
+<details><summary><h3>Global</h3></summary>
+
+<table>
+	<thead>
+	<tr>
+		<th scope="col" width="150">Parameter</th>
+		<th>Type</th>
+		<th scope="col" width="500">Description</th>
+		<th>Default</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td><code>is_root</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/bool.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_bool.html"> bool</a></code></td>
+		<td>Makes this element the root for all others.</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/bool.svg"> false</code></td>
+	</tr>
+	<tr>
+		<td><code>parent</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/StringName.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_stringname.html">StringName</a></code></td>
+		<td> Defines the parent of this element and adds it to it (name of already added element).<br>
+			If you set the value to <code>&"root"</code>, then the element will be added as a child node of the <code>root element</code> (<code>root_control</code>).<br>
+			You can also set the name of the <code>root_control</code> as the value, <b>this will be equivalent</b>.</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/StringName.svg"> &"root"</code></td>
+	</tr>
+	<tr>
+		<td><code>h_size_flags</code> <code>v_size_flags</code><br> or <br><code>horizontal_size_flags</code> <code>vertical_size_flags</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_control.html#enum-control-sizeflags">Control.SizeFlags</a></code></th>
+		<td>Param for sets element's <code><img src="https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_control.html#class-control-property-size-flags-horizontal">Control.size_flags_horizontal</a></code> and <code><img src="https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_control.html#class-control-property-size-flags-vertical">Control.size_flags_vertical</a></code></td>
+		<th><a href="https://docs.godotengine.org/en/latest/classes/class_control.html#enum-control-sizeflags"><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg"> Control.SIZE_FILL</code></a></th>
+	</tr>
+	<tr>
+		<td><code>min_size</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Vector2.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_vector2.html">Vector2</a></code></th>
+		<td>Element's <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Control.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_control.html#class-control-property-custom-minimum-size">custom_minimum_size<a></code></td>
+		<th><a href="https://docs.godotengine.org/en/latest/classes/class_vector2.html#class-vector2-constant-zero"><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Vector2.svg"> Vector2.ZERO</code></a></th>
+	</tr>
+	<tr>
+		<td><code>script</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/String.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_string.html">String</a></code> <br>or<br> <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Object.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_vector2.html">Resource</a></code></th>
+		<td>You can attach custom script. It's can be a <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/String.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_string.html">String</a></code> <b>source code</b>, path to <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/File.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_string.html">script file</a></code> or <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Script.svg">Script itself</code>.<br> See <code><a href="https://github.com/NickSteinGames/useful-scripts/wiki/GUICreator#script-attaching">Script Attaching</a></code> for more information.</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Object.svg"> null</code></td>
+	</tr>
+	<tr>
+		<td><code>ready_callable</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Callable.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_callable.html">Callable</a></code></td>
+		<td><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Callable.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_callable.html#class-callable-method-call">call()</a></code> when <code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Node.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_node.html#class-node-signal-ready">Node.ready</a></code> is emited.</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Object.svg"> null</code></td>
+	</tr>
+	</tbody>
+</table>
+<table>
+	<thead>
+	<tr>
+		<th scope="col" width="150">Parameter</td>
+		<th>Type</th>
+		<th scope="col" width="500">Description</th>
+		<th>Default</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td><code>properties</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_dictionary.html">Dictionary</a>[<img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/StringName.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_stringname.html">StringName</a>, <img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Variant.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_variant.html">Variant</a>]</code></td>
+		<td> A parameter for setting other properties that are not processed by the <a href="https://github.com/NickSteinGames/useful-scripts/wiki/GUICreator#make-methods">make_*()</a> methods. I recommend using StringName for properies names to increase performance.
+</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> {}</code></td>
+	</tr>
+	<tr>
+		<td><code>signals</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_dictionary.html">Dictionary</a>[<img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/StringName.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_stringname.html">StringName</a>, <img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Callable.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_callable.html">Callable</a>]</code></td>
+		<td>TEXT</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> {}</code></td>
+	</tr>
+	<tr>
+		<td><code>meta</code></td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_dictionary.html">Dictionary</a>[<img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/StringName.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_stringname.html">StringName</a>, <img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Variant.svg"> <a href="https://docs.godotengine.org/en/latest/classes/class_variant.html">Variant</a>]</code></td>
+		<td>TEXT</td>
+		<th><code><img src = "https://raw.githubusercontent.com/godotengine/godot/master/editor/icons/Dictionary.svg"> {}</code></td>
+	</tr>
+	</tbody>
+</table>
+</details>
+</details>
+
+***
+
+<details><summary><h2>Processing Custom Classes</h2></summary>
+
+TEXT
+
+</details>
+
+***
+
+<details><summary><h2>Script Attaching</h2></summary>
+
+TEXT
+
+</details>
+
+***
+
+<details><summary><h1>Class Info</h1></summary>
+
+Creates Control Nodes (GUI) from Dictionary.
+## Description
+
+## Properties
+- global_button_groups <sub>static</sub> : Dictionary[StringName, ButtonGroup] [Default: `{}`] 
+## Methods
+- create_gui(data: Dictionary[StringName, Dictionary])
+### Make Methods
+___
+## Property Descriptions
+### global_button_groups
+
+## Method Descriptions

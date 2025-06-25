@@ -85,10 +85,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_pressed() && event.button_index == MOUSE_BUTTON_WHEEL_DOWN && event.ctrl_pressed:
 			_on_minus_pressed()
 
-func _input(event: InputEvent) -> void:
-	if event.is_action("ui_cancel"):
-		hide()
-
 func _on_copy_button_pressed() -> void:
 	DisplayServer.clipboard_set(get_text())
 
